@@ -36,7 +36,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { session, setSession } = useAuth();
   const [saving, setSaving] = useState(false);
   const hasStoredThemeRef = useRef(readStoredTheme() !== null);
-  const [theme, setTheme] = useState<ThemePreference>(() => readStoredTheme() ?? "light");
+  const [theme, setTheme] = useState<ThemePreference>(() => readStoredTheme() ?? "dark");
 
   useEffect(() => {
     if (!hasStoredThemeRef.current && session?.theme_preference) {
