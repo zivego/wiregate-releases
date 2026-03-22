@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
+
+import {
+  IconLayoutDashboard, IconRobot, IconWorld, IconTopologyStarRing3,
+  IconKey, IconShieldCheck, IconCompass,
+  IconFileText, IconTerminal2, IconDeviceDesktop,
+  IconUser, IconBook2, IconUsers, IconRefresh,
+} from "@tabler/icons-react";
 
 type NavKey = "dashboard" | "agents" | "peers" | "network" | "tokens" | "policies" | "audit" | "logging" | "dns" | "sessions" | "account" | "guide" | "users" | "update";
 
@@ -13,7 +20,7 @@ interface NavItem {
   key: NavKey;
   to: string;
   label: string;
-  icon: string;
+  icon: ReactNode;
   accent: string;
   section?: string;
 }
@@ -25,25 +32,35 @@ const SECTIONS = {
   system: "System",
 } as const;
 
+const ICON_SIZE = 18;
+const ICON_STROKE = 1.8;
+
 function buildItems(role?: string, restricted?: boolean): NavItem[] {
   if (restricted) {
-    return [{ key: "account", to: "/account", label: "Account", icon: "\u{1F464}", accent: "#a78bfa", section: "system" }];
+    return [{ key: "account", to: "/account", label: "Account", icon: <IconUser size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#a78bfa", section: "system" }];
   }
   return [
-    { key: "dashboard", to: "/dashboard", label: "Dashboard", icon: "\u{1F4CA}", accent: "#60a5fa", section: "core" },
-    { key: "agents", to: "/agents", label: "Agents", icon: "\u{1F916}", accent: "#34d399", section: "core" },
-    { key: "peers", to: "/peers", label: "Peers", icon: "\u{1F310}", accent: "#38bdf8", section: "core" },
-    { key: "network", to: "/network", label: "Network", icon: "\u{1F5A7}", accent: "#818cf8", section: "core" },
-    { key: "tokens", to: "/enrollment-tokens", label: "Tokens", icon: "\u{1F511}", accent: "#fbbf24", section: "manage" },
-    { key: "policies", to: "/access-policies", label: "Policies", icon: "\u{1F6E1}\uFE0F", accent: "#f472b6", section: "manage" },
-    ...(role !== "readonly" ? [{ key: "dns" as const, to: "/dns", label: "DNS", icon: "\u{1F9ED}", accent: "#2dd4bf", section: "manage" }] : []),
-    { key: "audit", to: "/audit-events", label: "Audit Log", icon: "\u{1F4DC}", accent: "#fb923c", section: "security" },
-    ...(role !== "readonly" ? [{ key: "logging" as const, to: "/logging", label: "Logging", icon: "\u{1F4DD}", accent: "#a3e635", section: "security" }] : []),
-    { key: "sessions", to: "/sessions", label: "Sessions", icon: "\u{1F4BB}", accent: "#e879f9", section: "security" },
-    { key: "account", to: "/account", label: "Account", icon: "\u{1F464}", accent: "#a78bfa", section: "system" },
-    { key: "guide", to: "/guide", label: "Guide", icon: "\u{1F4D6}", accent: "#67e8f9", section: "system" },
-    ...(role === "admin" ? [{ key: "users" as const, to: "/users", label: "Users", icon: "\u{1F465}", accent: "#6ee7b7", section: "system" }] : []),
-    ...(role === "admin" ? [{ key: "update" as const, to: "/system/update", label: "Update", icon: "\u{1F504}", accent: "#fca5a1", section: "system" }] : []),
+    // Overview
+    { key: "dashboard", to: "/dashboard", label: "Dashboard", icon: <IconLayoutDashboard size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#60a5fa", section: "core" },
+    { key: "agents", to: "/agents", label: "Agents", icon: <IconRobot size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#34d399", section: "core" },
+    { key: "peers", to: "/peers", label: "Peers", icon: <IconWorld size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#38bdf8", section: "core" },
+    { key: "network", to: "/network", label: "Network", icon: <IconTopologyStarRing3 size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#818cf8", section: "core" },
+
+    // Management
+    { key: "tokens", to: "/enrollment-tokens", label: "Tokens", icon: <IconKey size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#fbbf24", section: "manage" },
+    { key: "policies", to: "/access-policies", label: "Policies", icon: <IconShieldCheck size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#f472b6", section: "manage" },
+    ...(role !== "readonly" ? [{ key: "dns" as const, to: "/dns", label: "DNS", icon: <IconCompass size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#2dd4bf", section: "manage" }] : []),
+
+    // Security
+    { key: "audit", to: "/audit-events", label: "Audit Log", icon: <IconFileText size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#fb923c", section: "security" },
+    ...(role !== "readonly" ? [{ key: "logging" as const, to: "/logging", label: "Logging", icon: <IconTerminal2 size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#a3e635", section: "security" }] : []),
+    { key: "sessions", to: "/sessions", label: "Sessions", icon: <IconDeviceDesktop size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#e879f9", section: "security" },
+
+    // System
+    { key: "account", to: "/account", label: "Account", icon: <IconUser size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#a78bfa", section: "system" },
+    { key: "guide", to: "/guide", label: "Guide", icon: <IconBook2 size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#67e8f9", section: "system" },
+    ...(role === "admin" ? [{ key: "users" as const, to: "/users", label: "Users", icon: <IconUsers size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#6ee7b7", section: "system" }] : []),
+    ...(role === "admin" ? [{ key: "update" as const, to: "/system/update", label: "Update", icon: <IconRefresh size={ICON_SIZE} stroke={ICON_STROKE} />, accent: "#fca5a1", section: "system" }] : []),
   ];
 }
 
@@ -101,7 +118,6 @@ export function HeaderNavMenu({ current, role, restricted = false }: HeaderNavMe
   const overflowMobile = items.filter((item) => !primaryMobileKeys.includes(item.key));
   const currentInOverflow = overflowMobile.some((item) => item.key === current);
 
-  // Group items by section for desktop
   const sections = !restricted ? Object.entries(SECTIONS) : [["system", "System"] as const];
   const grouped = sections.map(([sectionKey, sectionLabel]) => ({
     label: sectionLabel,
@@ -118,11 +134,12 @@ export function HeaderNavMenu({ current, role, restricted = false }: HeaderNavMe
     };
     const iconStyle: React.CSSProperties = {
       ...s.sidebarIcon,
-      ...(isActive ? { background: `${item.accent}25`, boxShadow: `0 0 12px ${item.accent}30` } : {}),
+      color: isActive ? item.accent : "var(--wg-text-muted)",
+      ...(isActive ? { background: `${item.accent}20`, boxShadow: `0 0 10px ${item.accent}20` } : {}),
     };
     const labelStyle: React.CSSProperties = {
       ...s.sidebarLabel,
-      ...(isActive ? { color: item.accent, fontWeight: 700 } : {}),
+      ...(isActive ? { color: item.accent, fontWeight: 600 } : {}),
     };
     return (
       <Link
@@ -154,9 +171,7 @@ export function HeaderNavMenu({ current, role, restricted = false }: HeaderNavMe
       <nav style={s.sidebarNav}>
         {grouped.map((group, i) => (
           <div key={i}>
-            {!collapsed && (
-              <div style={s.sectionLabel}>{group.label}</div>
-            )}
+            {!collapsed && <div style={s.sectionLabel}>{group.label}</div>}
             <div style={s.sectionItems}>
               {group.items.map(renderLink)}
             </div>
@@ -178,7 +193,7 @@ export function HeaderNavMenu({ current, role, restricted = false }: HeaderNavMe
                 to={item.to}
                 style={item.key === current ? { ...s.moreLink, background: `${item.accent}18`, borderColor: `${item.accent}40`, color: item.accent } : s.moreLink}
               >
-                <span style={{ marginRight: "0.5rem" }}>{item.icon}</span>
+                <span style={{ marginRight: "0.5rem", color: item.key === current ? item.accent : "var(--wg-text-muted)" }}>{item.icon}</span>
                 {item.label}
               </Link>
             ))}
@@ -192,7 +207,7 @@ export function HeaderNavMenu({ current, role, restricted = false }: HeaderNavMe
             to={item.to}
             style={item.key === current ? { ...s.mobileLink, color: item.accent, borderColor: `${item.accent}40` } : s.mobileLink}
           >
-            <span style={{ fontSize: "1.2rem" }}>{item.icon}</span>
+            <span style={{ color: item.key === current ? item.accent : "var(--wg-text-muted)" }}>{item.icon}</span>
             <span style={{ fontSize: "0.68rem" }}>{item.label}</span>
           </Link>
         ))}
@@ -202,7 +217,7 @@ export function HeaderNavMenu({ current, role, restricted = false }: HeaderNavMe
             onClick={() => setMoreOpen((v) => !v)}
             style={currentInOverflow || moreOpen ? { ...s.mobileLinkBtn, color: "var(--wg-text)" } : s.mobileLinkBtn}
           >
-            <span style={{ fontSize: "1.2rem" }}>{"\u2022\u2022\u2022"}</span>
+            <span style={{ fontSize: "1.1rem", letterSpacing: "2px" }}>{"\u2022\u2022\u2022"}</span>
             <span style={{ fontSize: "0.68rem" }}>More</span>
           </button>
         )}
@@ -229,9 +244,7 @@ const s: Record<string, React.CSSProperties> = {
     gap: "0.5rem",
     overflowY: "auto",
   },
-  sidebarCollapsed: {
-    width: 68,
-  },
+  sidebarCollapsed: { width: 68 },
   sidebarTop: {
     display: "flex",
     justifyContent: "flex-end",
@@ -260,11 +273,9 @@ const s: Record<string, React.CSSProperties> = {
     letterSpacing: "0.08em",
     color: "var(--wg-text-muted)",
     padding: "0.4rem 0.6rem 0.2rem",
+    fontFamily: "'Space Grotesk', sans-serif",
   },
-  sectionItems: {
-    display: "grid",
-    gap: "2px",
-  },
+  sectionItems: { display: "grid", gap: "2px" },
   sidebarLink: {
     display: "grid",
     gridTemplateColumns: "34px 1fr",
@@ -278,6 +289,7 @@ const s: Record<string, React.CSSProperties> = {
     border: "1px solid transparent",
     transition: "all 150ms ease",
     cursor: "pointer",
+    fontFamily: "'Inter', sans-serif",
   },
   sidebarIcon: {
     display: "inline-flex",
@@ -286,17 +298,12 @@ const s: Record<string, React.CSSProperties> = {
     width: 34,
     height: 30,
     borderRadius: 8,
-    fontSize: "1rem",
     transition: "all 150ms ease",
   },
-  sidebarLabel: {
-    transition: "color 150ms ease",
-  },
+  sidebarLabel: { transition: "color 150ms ease" },
   mobileBar: {
     position: "fixed",
-    left: 0,
-    right: 0,
-    bottom: 0,
+    left: 0, right: 0, bottom: 0,
     zIndex: 210,
     borderTop: "1px solid var(--wg-border-subtle)",
     background: "var(--wg-surface)",
@@ -336,9 +343,7 @@ const s: Record<string, React.CSSProperties> = {
   },
   moreSheet: {
     position: "fixed",
-    left: 0,
-    right: 0,
-    bottom: "74px",
+    left: 0, right: 0, bottom: "74px",
     zIndex: 220,
     background: "var(--wg-surface)",
     borderTop: "1px solid var(--wg-border-subtle)",
@@ -354,11 +359,9 @@ const s: Record<string, React.CSSProperties> = {
     color: "var(--wg-text-muted)",
     fontWeight: 700,
     padding: "0 0.15rem",
+    fontFamily: "'Space Grotesk', sans-serif",
   },
-  moreList: {
-    display: "grid",
-    gap: "0.35rem",
-  },
+  moreList: { display: "grid", gap: "0.35rem" },
   moreLink: {
     color: "var(--wg-text)",
     textDecoration: "none",
