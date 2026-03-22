@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ghcr.io/zivego/wiregate-server:latest
     build:
       context: ../../
       dockerfile: deploy/compose/backend.Dockerfile
@@ -11,11 +12,17 @@ services:
       WIREGATE_SQLITE_PATH: "${WIREGATE_SQLITE_PATH:-/var/lib/wiregate/wiregate.db}"
       WIREGATE_POSTGRES_DSN: "${WIREGATE_POSTGRES_DSN:-}"
       WIREGATE_DATABASE_URL: "${WIREGATE_DATABASE_URL:-}"
+      WIREGATE_BOOTSTRAP_ADMIN_EMAIL: "${WIREGATE_BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}"
+      WIREGATE_BOOTSTRAP_ADMIN_PASSWORD: "${WIREGATE_BOOTSTRAP_ADMIN_PASSWORD:-secret}"
+      WIREGATE_COOKIE_INSECURE: "${WIREGATE_COOKIE_INSECURE:-true}"
     volumes:
       - wiregate-data:/var/lib/wiregate
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ${DOCKER_CONFIG:-~/.docker}/config.json:/app/.docker/config.json:ro
     restart: unless-stopped
 
   frontend:
+    image: ghcr.io/zivego/wiregate-frontend:latest
     build:
       context: ../../
       dockerfile: deploy/compose/frontend.Dockerfile

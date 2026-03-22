@@ -2,6 +2,7 @@ package updater
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -230,7 +231,7 @@ func (s *Service) selfInspect() (*containerInfo, error) {
 		return nil, fmt.Errorf("get hostname: %w", err)
 	}
 
-	resp, err := s.docker.Get("http://localhost/v1.43/containers/" + hostname + "/json")
+	resp, err := s.docker.Get("http://localhost/v1.45/containers/" + hostname + "/json")
 	if err != nil {
 		return nil, fmt.Errorf("inspect container: %w", err)
 	}
@@ -351,10 +352,13 @@ func splitCommaSeparated(raw string) []string {
 
 // pullImage pulls the given image via Docker API.
 func (s *Service) pullImage(ctx context.Context, image string) error {
-	pullURL := fmt.Sprintf("http://localhost/v1.43/images/create?fromImage=%s", url.QueryEscape(image))
+	pullURL := fmt.Sprintf("http://localhost/v1.45/images/create?fromImage=%s", url.QueryEscape(image))
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, pullURL, nil)
 	if err != nil {
 		return fmt.Errorf("create pull request: %w", err)
+	}
+	if authHeader := registryAuthFromConfig(image); authHeader != "" {
+		req.Header.Set("X-Registry-Auth", authHeader)
 	}
 
 	resp, err := s.docker.Do(req)
@@ -464,7 +468,7 @@ func discoverComposeServiceImage(ctx context.Context, client *http.Client, proje
 	if err != nil {
 		return "", fmt.Errorf("encode container filters: %w", err)
 	}
-	endpoint := "http://localhost/v1.43/containers/json?all=1&filters=" + url.QueryEscape(string(encoded))
+	endpoint := "http://localhost/v1.45/containers/json?all=1&filters=" + url.QueryEscape(string(encoded))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return "", fmt.Errorf("create container list request: %w", err)
@@ -572,6 +576,14 @@ func helperBinds(meta composeContext, mounts []containerMount) []string {
 	addDir(meta.EnvFile)
 
 	binds := []string{fmt.Sprintf("%s:/var/run/docker.sock:rw", findSocketSourceMount(mounts))}
+	// Forward docker config for registry auth in helper container.
+	for _, m := range mounts {
+		dest := strings.TrimSpace(m.Destination)
+		if strings.HasSuffix(dest, "/config.json") && strings.Contains(dest, "docker") {
+			binds = append(binds, fmt.Sprintf("%s:/root/.docker/config.json:ro", strings.TrimSpace(m.Source)))
+			break
+		}
+	}
 	dirList := make([]string, 0, len(dirs))
 	for dir := range dirs {
 		if strings.TrimSpace(dir) != "" {
@@ -591,7 +603,7 @@ func (s *Service) createContainer(ctx context.Context, name string, config map[s
 		return "", fmt.Errorf("encode create payload: %w", err)
 	}
 
-	endpoint := "http://localhost/v1.43/containers/create?name=" + url.QueryEscape(name)
+	endpoint := "http://localhost/v1.45/containers/create?name=" + url.QueryEscape(name)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, strings.NewReader(string(payload)))
 	if err != nil {
 		return "", fmt.Errorf("create create-container request: %w", err)
@@ -620,7 +632,7 @@ func (s *Service) createContainer(ctx context.Context, name string, config map[s
 }
 
 func (s *Service) startContainer(ctx context.Context, id string) error {
-	endpoint := fmt.Sprintf("http://localhost/v1.43/containers/%s/start", id)
+	endpoint := fmt.Sprintf("http://localhost/v1.45/containers/%s/start", id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, nil)
 	if err != nil {
 		return fmt.Errorf("create start request: %w", err)
@@ -638,7 +650,7 @@ func (s *Service) startContainer(ctx context.Context, id string) error {
 }
 
 func (s *Service) waitContainer(ctx context.Context, id string) (int, string, error) {
-	endpoint := fmt.Sprintf("http://localhost/v1.43/containers/%s/wait?condition=not-running", id)
+	endpoint := fmt.Sprintf("http://localhost/v1.45/containers/%s/wait?condition=not-running", id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, nil)
 	if err != nil {
 		return 0, "", fmt.Errorf("create wait request: %w", err)
@@ -665,7 +677,7 @@ func (s *Service) waitContainer(ctx context.Context, id string) (int, string, er
 }
 
 func (s *Service) containerLogs(ctx context.Context, id string, tail int) string {
-	endpoint := fmt.Sprintf("http://localhost/v1.43/containers/%s/logs?stdout=1&stderr=1&tail=%d", id, tail)
+	endpoint := fmt.Sprintf("http://localhost/v1.45/containers/%s/logs?stdout=1&stderr=1&tail=%d", id, tail)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return ""
@@ -683,7 +695,7 @@ func (s *Service) containerLogs(ctx context.Context, id string, tail int) string
 }
 
 func (s *Service) removeContainer(ctx context.Context, id string) {
-	endpoint := fmt.Sprintf("http://localhost/v1.43/containers/%s?force=1", id)
+	endpoint := fmt.Sprintf("http://localhost/v1.45/containers/%s?force=1", id)
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, endpoint, nil)
 	if err != nil {
 		return
@@ -756,7 +768,7 @@ func (s *Service) runComposeHelper(ctx context.Context, image, script string, bi
 // For compose setups, we stop the container — `restart: unless-stopped` will NOT restart a manually stopped container.
 // Instead we use the Docker API restart endpoint which stops and starts in one call.
 func (s *Service) restartSelf(containerID string) error {
-	restartURL := fmt.Sprintf("http://localhost/v1.43/containers/%s/restart?t=5", containerID)
+	restartURL := fmt.Sprintf("http://localhost/v1.45/containers/%s/restart?t=5", containerID)
 	resp, err := s.docker.Post(restartURL, "", nil)
 	if err != nil {
 		return fmt.Errorf("restart container: %w", err)
@@ -832,8 +844,14 @@ func (s *Service) runUpdate(targetVersion string) {
 		script := buildComposeUpdateScript(composeMeta, targetBackendImage, targetFrontendImage)
 		binds := helperBinds(composeMeta, info.Mounts)
 		s.setStatus("restarting", fmt.Sprintf("applying %s with docker compose...", strings.TrimSpace(targetVersion)))
+		s.logger.Printf("update: pulling docker:cli helper image")
+		if err := s.pullImage(context.Background(), "docker:cli"); err != nil {
+			s.logger.Printf("update: docker:cli pull failed: %v", err)
+			s.setStatus("failed", fmt.Sprintf("failed to pull helper image: %v", err))
+			return
+		}
 		s.logger.Printf("update: running compose helper for project=%s", composeMeta.Project)
-		if err := s.runComposeHelper(context.Background(), info.Image, script, binds); err != nil {
+		if err := s.runComposeHelper(context.Background(), "docker:cli", script, binds); err != nil {
 			s.logger.Printf("update: compose helper failed: %v", err)
 			s.setStatus("failed", fmt.Sprintf("compose update failed: %v", err))
 			return
@@ -860,4 +878,51 @@ func shortContainerID(id string) string {
 		return id[:12]
 	}
 	return id
+}
+
+// registryAuthFromConfig reads ~/.docker/config.json (or /root/.docker/config.json)
+// and returns the base64-encoded X-Registry-Auth header for the registry of the given image.
+func registryAuthFromConfig(image string) string {
+	registry := "https://index.docker.io/v1/"
+	if parts := strings.SplitN(image, "/", 2); len(parts) == 2 && strings.Contains(parts[0], ".") {
+		registry = parts[0]
+	}
+
+	configPaths := []string{
+		filepath.Join(os.Getenv("HOME"), ".docker", "config.json"),
+		"/app/.docker/config.json",
+		"/root/.docker/config.json",
+	}
+
+	for _, cfgPath := range configPaths {
+		raw, err := os.ReadFile(cfgPath)
+		if err != nil {
+			continue
+		}
+		var cfg struct {
+			Auths map[string]struct {
+				Auth string `json:"auth"`
+			} `json:"auths"`
+		}
+		if err := json.Unmarshal(raw, &cfg); err != nil {
+			continue
+		}
+		if entry, ok := cfg.Auths[registry]; ok && entry.Auth != "" {
+			decoded, err := base64.StdEncoding.DecodeString(entry.Auth)
+			if err != nil {
+				continue
+			}
+			parts := strings.SplitN(string(decoded), ":", 2)
+			if len(parts) != 2 {
+				continue
+			}
+			authObj, _ := json.Marshal(map[string]string{
+				"username":      parts[0],
+				"password":      parts[1],
+				"serveraddress": registry,
+			})
+			return base64.URLEncoding.EncodeToString(authObj)
+		}
+	}
+	return ""
 }

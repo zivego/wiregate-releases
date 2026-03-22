@@ -141,8 +141,8 @@ func LoadFromEnv() Config {
 		AuditExportS3Prefix:    strings.TrimSpace(os.Getenv("WIREGATE_AUDIT_EXPORT_S3_PREFIX")),
 		AuditExportS3Endpoint:  strings.TrimSpace(os.Getenv("WIREGATE_AUDIT_EXPORT_S3_ENDPOINT")),
 		AuditExportS3Insecure:  envBoolOrDefault("WIREGATE_AUDIT_EXPORT_S3_INSECURE", false),
-		UpdateEnabled:     envBoolOrDefault("WIREGATE_UPDATE_ENABLED", false),
-		UpdateManifestURL: strings.TrimSpace(os.Getenv("WIREGATE_UPDATE_MANIFEST_URL")),
+		UpdateEnabled:     envBoolOrDefault("WIREGATE_UPDATE_ENABLED", true),
+		UpdateManifestURL: strings.TrimSpace(envOrDefault("WIREGATE_UPDATE_MANIFEST_URL", "https://raw.githubusercontent.com/zivego/wiregate-releases/main/manifest.json")),
 	}
 }
 
