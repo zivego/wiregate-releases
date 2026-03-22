@@ -1,0 +1,18 @@
+[Unit]
+Description=wiregate linux agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart="/usr/local/bin/wiregate-agent-linux" "daemon" "--state-file" "/var/lib/wiregate-agent/state.json" "--version" "0.1.0" "--interval" "30s" "--failure-backoff" "5s" "--max-failure-backoff" "1m0s" "--apply=true"
+Restart=on-failure
+RestartSec=5
+PrivateTmp=true
+ProtectHome=true
+ReadWritePaths=/etc/wireguard /var/lib/wiregate-agent
+
+[Install]
+WantedBy=multi-user.target

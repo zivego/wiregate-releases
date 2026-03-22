@@ -1,0 +1,20 @@
+[Unit]
+Description=wiregate server (MVP scaffold)
+After=network.target
+
+[Service]
+Type=simple
+User=wiregate
+Group=wiregate
+WorkingDirectory=/opt/wiregate
+EnvironmentFile=/etc/wiregate/wiregate.env
+ExecStart=/opt/wiregate/wiregate-server
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

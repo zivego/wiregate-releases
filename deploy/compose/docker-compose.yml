@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: ../../
+      dockerfile: deploy/compose/backend.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      WIREGATE_HTTP_ADDRESS: ":8080"
+      WIREGATE_DB_DRIVER: "${WIREGATE_DB_DRIVER:-sqlite}"
+      WIREGATE_SQLITE_PATH: "${WIREGATE_SQLITE_PATH:-/var/lib/wiregate/wiregate.db}"
+      WIREGATE_POSTGRES_DSN: "${WIREGATE_POSTGRES_DSN:-}"
+      WIREGATE_DATABASE_URL: "${WIREGATE_DATABASE_URL:-}"
+    volumes:
+      - wiregate-data:/var/lib/wiregate
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../../
+      dockerfile: deploy/compose/frontend.Dockerfile
+    ports:
+      - "5173:80"
+    restart: unless-stopped
+
+volumes:
+  wiregate-data:

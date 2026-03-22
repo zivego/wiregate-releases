@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Wiregate favicon">
+  <defs>
+    <linearGradient id="shieldStroke" x1="10%" y1="10%" x2="90%" y2="90%">
+      <stop offset="0%" stop-color="#20c8ff"/>
+      <stop offset="100%" stop-color="#8fff6a"/>
+    </linearGradient>
+    <linearGradient id="keyFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff589"/>
+      <stop offset="100%" stop-color="#ffbe17"/>
+    </linearGradient>
+  </defs>
+
+  <path
+    d="M128 18L220 54V118C220 167 194 205 128 240C62 205 36 167 36 118V54L128 18Z"
+    fill="none"
+    stroke="url(#shieldStroke)"
+    stroke-width="14"
+    stroke-linejoin="round"
+  />
+
+  <circle cx="128" cy="128" r="59" fill="none" stroke="#57dcff" stroke-width="8" opacity="0.92"/>
+  <path d="M98 143L156 85" stroke="url(#keyFill)" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="165" cy="78" r="18" fill="none" stroke="url(#keyFill)" stroke-width="10"/>
+  <path d="M95 145L80 160M88 151L73 166" stroke="url(#keyFill)" stroke-width="9" stroke-linecap="round"/>
+</svg>

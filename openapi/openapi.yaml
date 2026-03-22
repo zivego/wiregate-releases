@@ -1,0 +1,3409 @@
+openapi: 3.0.3
+info:
+  title: wiregate API
+  version: 0.1.0
+  description: MVP scaffold OpenAPI document aligned to docs/spec/API_SPEC.md.
+servers:
+  - url: /api/v1
+paths:
+  /auth/providers:
+    get:
+      summary: List configured authentication providers
+      responses:
+        '200':
+          description: Authentication providers for the login UI.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthProvidersResponse'
+  /auth/oidc/start:
+    get:
+      summary: Start OIDC login flow
+      responses:
+        '302':
+          description: Redirect to configured OIDC provider authorization endpoint.
+        '404':
+          description: OIDC provider is not configured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '503':
+          description: OIDC provider discovery/availability failed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /auth/oidc/callback:
+    get:
+      summary: OIDC callback endpoint
+      parameters:
+        - in: query
+          name: state
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: code
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Successful OIDC login redirects to dashboard or account page.
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: OIDC claims do not satisfy mapped role or policy requirements.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: OIDC provider is not configured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /analytics/dashboard:
+    get:
+      summary: Get dashboard analytics
+      parameters:
+        - in: query
+          name: range
+          schema:
+            type: string
+            enum: [24h, 7d, 30d]
+      responses:
+        '200':
+          description: Dashboard analytics snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardAnalytics'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /analytics/audit:
+    get:
+      summary: Get audit analytics
+      parameters:
+        - in: query
+          name: range
+          schema:
+            type: string
+            enum: [24h, 7d, 30d]
+        - in: query
+          name: bucket
+          schema:
+            type: string
+            enum: [hour, day]
+      responses:
+        '200':
+          description: Audit analytics snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditAnalytics'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /system/capacity:
+    get:
+      summary: Get system capacity snapshot
+      responses:
+        '200':
+          description: Current control-plane inventory and queue/export capacity summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapacitySnapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /system/version:
+    get:
+      summary: Get server version (unauthenticated)
+      responses:
+        '200':
+          description: Running server version identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemVersion'
+  /system/update/check:
+    get:
+      summary: Check for available server updates (admin only)
+      responses:
+        '200':
+          description: Update check result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCheckResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Server updates are not enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /system/update/apply:
+    post:
+      summary: Start server update (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [target_version]
+              properties:
+                target_version:
+                  type: string
+      responses:
+        '202':
+          description: Update started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: Update already in progress.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /system/update/status:
+    get:
+      summary: Get current update progress (admin only)
+      responses:
+        '200':
+          description: Current update state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          description: Server updates are not enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /system/cluster:
+    get:
+      summary: Get cluster leadership status
+      responses:
+        '200':
+          description: Cluster lease/leadership view for this instance.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClusterStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '404':
+          description: Cluster status provider is not configured.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /dns/config:
+    get:
+      summary: Get managed DNS configuration
+      responses:
+        '200':
+          description: Current DNS policy singleton
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DNSConfig'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    patch:
+      summary: Update managed DNS configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DNSConfig'
+      responses:
+        '200':
+          description: Updated DNS policy singleton
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DNSConfig'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /network/diagnostics:
+    get:
+      summary: Get network diagnostics snapshot
+      responses:
+        '200':
+          description: Current network/gateway diagnostics snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DiagnosticsSnapshot'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /logging/sinks:
+    get:
+      summary: List configured log export sinks
+      responses:
+        '200':
+          description: Logging sink inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogSinkListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    post:
+      summary: Create a log export sink
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogSinkRequest'
+      responses:
+        '201':
+          description: Created sink
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogSink'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /logging/sinks/{sink_id}:
+    patch:
+      summary: Update a log export sink
+      parameters:
+        - in: path
+          name: sink_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogSinkRequest'
+      responses:
+        '200':
+          description: Updated sink
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogSink'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '404':
+          description: Sink not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+    delete:
+      summary: Delete a log export sink
+      parameters:
+        - in: path
+          name: sink_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Sink deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '404':
+          description: Sink not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /logging/routes:
+    get:
+      summary: Get log routing rules and built-in redaction fields
+      responses:
+        '200':
+          description: Log routing configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogRoutesResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    patch:
+      summary: Update log routing rules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogRoutesRequest'
+      responses:
+        '200':
+          description: Updated log routing configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogRoutesResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /logging/status:
+    get:
+      summary: Get current log delivery status
+      responses:
+        '200':
+          description: Queue and per-sink delivery health
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoggingStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /logging/test-delivery:
+    post:
+      summary: Enqueue a synthetic log delivery event
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestDeliveryRequest'
+      responses:
+        '200':
+          description: Synthetic test event accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestDeliveryResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /security/policies:
+    get:
+      summary: Get the current security policy singleton
+      responses:
+        '200':
+          description: Current security policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityPolicy'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    patch:
+      summary: Update the current security policy singleton
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchSecurityPolicyRequest'
+      responses:
+        '200':
+          description: Updated security policy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityPolicy'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /security/approvals:
+    get:
+      summary: List dual-approval decisions
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          deprecated: true
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Security approval inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityApprovalListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /security/approvals/{approval_id}/{decision}:
+    post:
+      summary: Approve or reject a pending security action
+      parameters:
+        - in: path
+          name: approval_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: decision
+          required: true
+          schema:
+            type: string
+            enum: [approve, reject]
+      responses:
+        '200':
+          description: Security approval decision recorded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityApprovalDecisionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '404':
+          description: Approval not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: Approval is no longer pending or requires a different admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /sessions:
+    get:
+      summary: List active sessions
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          deprecated: true
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Active sessions visible to the caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    post:
+      summary: Create session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /sessions/current:
+    get:
+      summary: Get current session
+      responses:
+        '200':
+          description: Current authenticated session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+        '401':
+          description: No valid session
+    delete:
+      summary: Delete current session
+      responses:
+        '204':
+          description: Session revoked
+  /sessions/{session_id}/revoke:
+    post:
+      summary: Revoke one active session
+      parameters:
+        - in: path
+          name: session_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Session revoked
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '404':
+          description: Session not found or not visible to the caller.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /users:
+    get:
+      summary: List users (admin only)
+      parameters:
+        - in: query
+          name: limit
+          deprecated: true
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPage'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    post:
+      summary: Create user (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: User created
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /users/{user_id}:
+    patch:
+      summary: Update user email/role (admin only)
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserRequest'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    delete:
+      summary: Delete user (admin only)
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: User deleted
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /users/{user_id}/password-reset:
+    post:
+      summary: Reset user password (admin only)
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetUserPasswordRequest'
+      responses:
+        '200':
+          description: Password reset completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordActionResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /users/me/password:
+    post:
+      summary: Change current user password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeOwnPasswordRequest'
+      responses:
+        '200':
+          description: Password changed and sessions revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordActionResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /users/me/preferences:
+    patch:
+      summary: Update current user preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOwnPreferencesRequest'
+      responses:
+        '200':
+          description: Current user preferences updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OwnPreferences'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /users/me/mfa/totp:
+    get:
+      summary: Get current user TOTP MFA status
+      responses:
+        '200':
+          description: Current TOTP MFA state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFATOTPStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /users/me/mfa/totp/setup:
+    post:
+      summary: Create or rotate TOTP secret for current user
+      responses:
+        '200':
+          description: New provisioning details. MFA remains disabled until verification.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFATOTPSetupResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /users/me/mfa/totp/enable:
+    post:
+      summary: Enable TOTP MFA for current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFATOTPCodeRequest'
+      responses:
+        '200':
+          description: TOTP MFA enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFATOTPStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /users/me/mfa/totp/disable:
+    post:
+      summary: Disable TOTP MFA for current user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MFATOTPCodeRequest'
+      responses:
+        '200':
+          description: TOTP MFA disabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MFATOTPStatus'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /service-accounts:
+    get:
+      summary: List service accounts (admin only)
+      responses:
+        '200':
+          description: Service account inventory.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceAccountListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    post:
+      summary: Create service account (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceAccountRequest'
+      responses:
+        '201':
+          description: Service account created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceAccount'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /service-accounts/{service_account_id}/keys:
+    get:
+      summary: List API keys for service account (admin only)
+      parameters:
+        - in: path
+          name: service_account_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service account API keys.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceAccountKeyListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    post:
+      summary: Create API key for service account (admin only)
+      parameters:
+        - in: path
+          name: service_account_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateServiceAccountKeyRequest'
+      responses:
+        '201':
+          description: API key created. Token is shown once.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceAccountKey'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /service-accounts/{service_account_id}/keys/{key_id}/revoke:
+    post:
+      summary: Revoke API key (admin only)
+      parameters:
+        - in: path
+          name: service_account_id
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: key_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Key revoked.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /agents:
+    get:
+      summary: List agents
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: platform
+          schema:
+            type: string
+        - in: query
+          name: q
+          schema:
+            type: string
+        - in: query
+          name: limit
+          deprecated: true
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentInventoryPage'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /agents/bulk-state:
+    post:
+      summary: Bulk change agent state (admin/operator)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkAgentStateRequest'
+      responses:
+        '200':
+          description: Per-agent operation results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /agents/{agent_id}:
+    get:
+      summary: Get agent details
+      parameters:
+        - in: path
+          name: agent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent details
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /agents/{agent_id}/state:
+    patch:
+      summary: Change agent lifecycle state
+      parameters:
+        - in: path
+          name: agent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchAgentStateRequest'
+      responses:
+        '200':
+          description: Updated agent inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentInventory'
+        '202':
+          description: Dual approval requested and pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingSecurityApprovalResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /agents/{agent_id}/traffic-mode:
+    patch:
+      summary: Set per-agent traffic mode override
+      parameters:
+        - in: path
+          name: agent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchAgentTrafficModeRequest'
+      responses:
+        '200':
+          description: Updated agent inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentInventory'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /agents/{agent_id}/check-in:
+    post:
+      summary: Agent status check-in
+      parameters:
+        - in: path
+          name: agent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentCheckInRequest'
+      responses:
+        '200':
+          description: Agent check-in accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentCheckInResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /agents/{agent_id}/gateway-mode:
+    post:
+      summary: Set agent gateway role mode
+      parameters:
+        - in: path
+          name: agent_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostAgentGatewayModeRequest'
+      responses:
+        '200':
+          description: Updated agent inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentInventory'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /agents/{agent_id}/reissue:
+    post:
+      summary: Reissue enrollment for a revoked agent
+      parameters:
+        - in: path
+          name: agent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reissued one-time enrollment token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentToken'
+        '202':
+          description: Dual approval requested and pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingSecurityApprovalResponse'
+  /agents/{agent_id}/rotate:
+    post:
+      summary: Request agent key rotation
+      parameters:
+        - in: path
+          name: agent_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Agent marked for rotation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentInventory'
+        '202':
+          description: Dual approval requested and pending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingSecurityApprovalResponse'
+  /peers:
+    get:
+      summary: List peers
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: agent_id
+          schema:
+            type: string
+        - in: query
+          name: q
+          schema:
+            type: string
+        - in: query
+          name: limit
+          deprecated: true
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Peer inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeerRuntimeViewPage'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /peers/{peer_id}:
+    get:
+      summary: Get peer details
+      parameters:
+        - in: path
+          name: peer_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Peer details
+  /peers/{peer_id}/reconcile:
+    post:
+      summary: Reconcile one peer into runtime state
+      parameters:
+        - in: path
+          name: peer_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Peer reconciled
+  /enrollment-tokens:
+    get:
+      summary: List enrollment tokens
+      parameters:
+        - in: query
+          name: limit
+          deprecated: true
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Enrollment tokens
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnrollmentTokenPage'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+    post:
+      summary: Create enrollment token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEnrollmentTokenRequest'
+      responses:
+        '201':
+          description: Enrollment token created
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /enrollment-tokens/{token_id}/revoke:
+    post:
+      summary: Revoke enrollment token
+      parameters:
+        - in: path
+          name: token_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Enrollment token revoked
+  /enrollments:
+    post:
+      summary: Enroll agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PerformEnrollmentRequest'
+      responses:
+        '201':
+          description: Agent enrolled
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /access-policies:
+    get:
+      summary: List access policies
+      parameters:
+        - in: query
+          name: limit
+          deprecated: true
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+            minimum: 1
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Access policies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessPolicyPage'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+    post:
+      summary: Create access policy
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccessPolicyRequest'
+      responses:
+        '201':
+          description: Access policy created
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /access-policies/simulate:
+    post:
+      summary: Simulate rendered policy intent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicySimulationRequest'
+      responses:
+        '200':
+          description: Simulated policy rendering result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicySimulationResult'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '404':
+          description: Agent or policy not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+  /access-policies/bulk-assign:
+    post:
+      summary: Bulk assign policy to agents (admin/operator)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkAssignPoliciesRequest'
+      responses:
+        '200':
+          description: Per-agent assignment results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResultResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /access-policies/{policy_id}:
+    patch:
+      summary: Update access policy
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAccessPolicyRequest'
+      responses:
+        '200':
+          description: Access policy updated
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /access-policies/{policy_id}/assign:
+    post:
+      summary: Assign access policy to one enrolled agent
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignAccessPolicyRequest'
+      responses:
+        '200':
+          description: Access policy assigned
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+  /access-policies/{policy_id}/unassign:
+    post:
+      summary: Remove access policy assignment from one enrolled agent
+      parameters:
+        - in: path
+          name: policy_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignAccessPolicyRequest'
+      responses:
+        '200':
+          description: Access policy unassigned
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '409':
+          description: Assignment not found
+  /audit-events:
+    get:
+      summary: List audit events
+      parameters:
+        - in: query
+          name: action
+          schema:
+            type: string
+        - in: query
+          name: resource_type
+          schema:
+            type: string
+        - in: query
+          name: result
+          schema:
+            type: string
+        - in: query
+          name: actor_user_id
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+          deprecated: true
+        - in: query
+          name: page_size
+          schema:
+            type: integer
+        - in: query
+          name: cursor
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audit records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditEventListResponse'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+  /audit-events/export:
+    post:
+      summary: Export audit events to file or S3 (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuditExportRequest'
+      responses:
+        '200':
+          description: Export completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuditExportResponse'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/PasswordChangeRequired'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+  /notifications/preferences:
+    get:
+      summary: Get current user notification preferences
+      responses:
+        '200':
+          description: Notification preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    patch:
+      summary: Update notification preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchNotificationPreferencesRequest'
+      responses:
+        '200':
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferences'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /events:
+    get:
+      summary: Server-Sent Events stream
+      description: Real-time event stream (SSE). Requires authentication cookie.
+      responses:
+        '200':
+          description: SSE event stream
+          content:
+            text/event-stream: {}
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /ipam/pools:
+    get:
+      summary: List IPAM address pools
+      responses:
+        '200':
+          description: List of address pools with usage stats
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IPAMPoolListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      summary: Create a new address pool
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateIPAMPoolRequest'
+      responses:
+        '201':
+          description: Pool created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IPAMPool'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Admin role required
+  /ipam/pools/{pool_id}:
+    get:
+      summary: Get a single address pool with usage stats
+      parameters:
+        - in: path
+          name: pool_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pool details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IPAMPoolSummary'
+        '404':
+          description: Pool not found
+    delete:
+      summary: Delete an address pool and all its reservations
+      parameters:
+        - in: path
+          name: pool_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Pool deleted
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          description: Admin role required
+  /ipam/pools/{pool_id}/reservations:
+    get:
+      summary: List address reservations in a pool
+      parameters:
+        - in: path
+          name: pool_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Reservations list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IPAMReservationListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /ipam/pools/{pool_id}/allocate:
+    post:
+      summary: Allocate the next free address in a pool
+      parameters:
+        - in: path
+          name: pool_id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllocateIPAMAddressRequest'
+      responses:
+        '201':
+          description: Address allocated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IPAMReservation'
+        '400':
+          description: Pool exhausted or invalid request
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /ipam/reservations/{reservation_id}:
+    delete:
+      summary: Release an address reservation
+      parameters:
+        - in: path
+          name: reservation_id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Reservation released
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /health/live:
+    get:
+      summary: Liveness probe
+      responses:
+        '200':
+          description: Service is alive
+  /health/ready:
+    get:
+      summary: Readiness probe
+      responses:
+        '200':
+          description: Service is ready
+  /health/reconcile:
+    get:
+      summary: Reconciliation health
+      responses:
+        '200':
+          description: Reconciliation status
+components:
+  responses:
+    ValidationFailed:
+      description: Request body or parameters failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Unauthorized:
+      description: Invalid credentials or missing session.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    UnsupportedMediaType:
+      description: `Content-Type` must be `application/json` for JSON endpoints.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    PayloadTooLarge:
+      description: Request body exceeds configured size limits.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    RateLimited:
+      description: Too many requests for the current actor/window.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    PasswordChangeRequired:
+      description: Password must be changed before this action is allowed.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    ErrorEnvelope:
+      type: object
+      properties:
+        error:
+          $ref: '#/components/schemas/Error'
+    Error:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        request_id:
+          type: string
+    SystemVersion:
+      type: object
+      properties:
+        version:
+          type: string
+        commit_sha:
+          type: string
+        build_time:
+          type: string
+    UpdateCheckResult:
+      type: object
+      properties:
+        current_version:
+          type: string
+        latest_version:
+          type: string
+        update_available:
+          type: boolean
+        released_at:
+          type: string
+        changelog_url:
+          type: string
+        checked_at:
+          type: string
+    UpdateStatus:
+      type: object
+      properties:
+        state:
+          type: string
+          enum: [idle, checking, pulling, restarting, failed]
+        message:
+          type: string
+        started_at:
+          type: string
+    AuthProvidersResponse:
+      type: object
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/OIDCProvider'
+    OIDCProvider:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          description: Provider type (`password` or `oidc` for this release).
+        enabled:
+          type: boolean
+        display_name:
+          type: string
+    DashboardSeriesPoint:
+      type: object
+      properties:
+        bucket_start:
+          type: string
+        count:
+          type: integer
+    EnrollmentFunnel:
+      type: object
+      properties:
+        issued:
+          type: integer
+        used:
+          type: integer
+        revoked_or_expired:
+          type: integer
+    PolicyCoverage:
+      type: object
+      properties:
+        policies_total:
+          type: integer
+        active_assignments:
+          type: integer
+        agents_with_policy:
+          type: integer
+        agents_without_policy:
+          type: integer
+        total_agents:
+          type: integer
+        coverage_percent:
+          type: number
+          format: float
+    FailingAgent:
+      type: object
+      properties:
+        agent_id:
+          type: string
+        hostname:
+          type: string
+        platform:
+          type: string
+        status:
+          type: string
+        last_apply_status:
+          type: string
+        last_apply_error:
+          type: string
+        runtime_drift_state:
+          type: string
+        failure_score:
+          type: integer
+        failure_categories:
+          type: array
+          items:
+            type: string
+    DashboardHealthCards:
+      type: object
+      properties:
+        total_agents:
+          type: integer
+        recently_seen_agents:
+          type: integer
+        applied_agents:
+          type: integer
+        drifted_agents:
+          type: integer
+        failed_agents:
+          type: integer
+        pending_reconcile:
+          type: integer
+    DashboardAnalytics:
+      type: object
+      properties:
+        range:
+          type: string
+          enum: [24h, 7d, 30d]
+        bucket:
+          type: string
+          enum: [hour, day]
+        generated_at:
+          type: string
+        auth_security_trend:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardSeriesPoint'
+        enrollment_funnel:
+          $ref: '#/components/schemas/EnrollmentFunnel'
+        policy_coverage:
+          $ref: '#/components/schemas/PolicyCoverage'
+        top_failing_agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/FailingAgent'
+        health_cards:
+          $ref: '#/components/schemas/DashboardHealthCards'
+        log_delivery:
+          type: object
+          nullable: true
+          additionalProperties: true
+    ActionDistributionItem:
+      type: object
+      properties:
+        category:
+          type: string
+        count:
+          type: integer
+    AuditHeatmapCell:
+      type: object
+      properties:
+        weekday:
+          type: integer
+        hour:
+          type: integer
+        count:
+          type: integer
+    AuditAnalytics:
+      type: object
+      properties:
+        range:
+          type: string
+          enum: [24h, 7d, 30d]
+        bucket:
+          type: string
+          enum: [hour, day]
+        generated_at:
+          type: string
+        event_trend:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardSeriesPoint'
+        action_distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActionDistributionItem'
+        activity_heatmap:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditHeatmapCell'
+        export_issues:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    LogSyslogConfig:
+      type: object
+      properties:
+        transport:
+          type: string
+          enum: [udp, tcp, tls]
+        host:
+          type: string
+        port:
+          type: integer
+        format:
+          type: string
+          enum: [rfc5424, json]
+        facility:
+          type: integer
+        app_name:
+          type: string
+        hostname_override:
+          type: string
+        ca_cert_file:
+          type: string
+        client_cert_file:
+          type: string
+        client_key_file:
+          type: string
+    LogSink:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          enum: [syslog]
+        enabled:
+          type: boolean
+        syslog:
+          $ref: '#/components/schemas/LogSyslogConfig'
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    LogSinkRequest:
+      type: object
+      required:
+        - name
+        - type
+        - syslog
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum: [syslog]
+        enabled:
+          type: boolean
+        syslog:
+          $ref: '#/components/schemas/LogSyslogConfig'
+    LogSinkListResponse:
+      type: object
+      properties:
+        sinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogSink'
+    LogRouteRule:
+      type: object
+      properties:
+        id:
+          type: string
+        sink_id:
+          type: string
+        categories:
+          type: array
+          items:
+            type: string
+            enum: [auth, session, user_mgmt, policy, agent, enrollment, reconcile, security, system]
+        min_severity:
+          type: string
+          enum: [debug, info, warn, error]
+        enabled:
+          type: boolean
+    LogRoutesRequest:
+      type: object
+      properties:
+        routes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogRouteRule'
+    LogRoutesResponse:
+      type: object
+      properties:
+        routes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogRouteRule'
+        redacted_fields:
+          type: array
+          items:
+            type: string
+    LogDeliveryStatus:
+      type: object
+      properties:
+        sink_id:
+          type: string
+        sink_name:
+          type: string
+        sink_type:
+          type: string
+        enabled:
+          type: boolean
+        queue_depth:
+          type: integer
+        dropped_events:
+          type: integer
+        total_delivered:
+          type: integer
+        total_failed:
+          type: integer
+        consecutive_failures:
+          type: integer
+        last_attempted_at:
+          type: string
+        last_delivered_at:
+          type: string
+        last_error:
+          type: string
+        updated_at:
+          type: string
+        dead_letter_count:
+          type: integer
+    LogDeliveryFailure:
+      type: object
+      properties:
+        id:
+          type: string
+        sink_id:
+          type: string
+        sink_name:
+          type: string
+        occurred_at:
+          type: string
+        category:
+          type: string
+        severity:
+          type: string
+          enum: [debug, info, warn, error]
+        message:
+          type: string
+        action:
+          type: string
+        error_message:
+          type: string
+        test_delivery:
+          type: boolean
+        metadata:
+          type: object
+          additionalProperties: true
+    LoggingStatus:
+      type: object
+      properties:
+        queue_capacity:
+          type: integer
+        current_queued:
+          type: integer
+        redacted_fields:
+          type: array
+          items:
+            type: string
+        sinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogDeliveryStatus'
+        recent_failures:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogDeliveryFailure'
+    CapacityStorage:
+      type: object
+      properties:
+        analytics_rollups:
+          type: integer
+        log_dead_letters:
+          type: integer
+    TestDeliveryRequest:
+      type: object
+      properties:
+        sink_id:
+          type: string
+    TestDeliveryResult:
+      type: object
+      properties:
+        accepted:
+          type: boolean
+        sink_id:
+          type: string
+    Session:
+      type: object
+      properties:
+        session_id:
+          type: string
+          description: Opaque public session identifier. Browser auth still relies on the HttpOnly cookie.
+        user_id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        must_change_password:
+          type: boolean
+        theme_preference:
+          type: string
+          enum: [light, dark]
+        auth_provider:
+          type: string
+          enum: [password, oidc, api_key]
+        last_seen_at:
+          type: string
+        source_ip:
+          type: string
+        user_agent:
+          type: string
+        issued_at:
+          type: string
+        expires_at:
+          type: string
+    SessionInventoryItem:
+      type: object
+      properties:
+        session_id:
+          type: string
+        user_id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, operator, readonly]
+        auth_provider:
+          type: string
+          enum: [password, oidc, api_key]
+        current:
+          type: boolean
+        issued_at:
+          type: string
+        expires_at:
+          type: string
+        last_seen_at:
+          type: string
+        source_ip:
+          type: string
+        user_agent:
+          type: string
+    SecurityPolicy:
+      type: object
+      properties:
+        required_admin_amr:
+          type: string
+        required_admin_acr:
+          type: string
+        dual_approval_enabled:
+          type: boolean
+    PatchSecurityPolicyRequest:
+      type: object
+      properties:
+        required_admin_amr:
+          type: string
+        required_admin_acr:
+          type: string
+        dual_approval_enabled:
+          type: boolean
+    SecurityApproval:
+      type: object
+      properties:
+        id:
+          type: string
+        action:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: string
+        request_payload:
+          type: object
+          additionalProperties: true
+        requested_by_user_id:
+          type: string
+        approved_by_user_id:
+          type: string
+        rejected_by_user_id:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        created_at:
+          type: string
+        decided_at:
+          type: string
+    PendingSecurityApprovalResponse:
+      type: object
+      properties:
+        approval:
+          $ref: '#/components/schemas/SecurityApproval'
+    SecurityApprovalListResponse:
+      type: object
+      properties:
+        approvals:
+          type: array
+          items:
+            $ref: '#/components/schemas/SecurityApproval'
+        next_cursor:
+          type: string
+    SecurityApprovalDecisionResponse:
+      type: object
+      properties:
+        approval:
+          $ref: '#/components/schemas/SecurityApproval'
+        result:
+          type: object
+          additionalProperties: true
+    SessionListResponse:
+      type: object
+      properties:
+        sessions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SessionInventoryItem'
+        next_cursor:
+          type: string
+    UpdateOwnPreferencesRequest:
+      type: object
+      required:
+        - theme_preference
+      properties:
+        theme_preference:
+          type: string
+          enum: [light, dark]
+    OwnPreferences:
+      type: object
+      properties:
+        user_id:
+          type: string
+        theme_preference:
+          type: string
+          enum: [light, dark]
+    MFATOTPStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+    MFATOTPSetupResponse:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        secret:
+          type: string
+        provisioning_uri:
+          type: string
+    MFATOTPCodeRequest:
+      type: object
+      required:
+        - otp_code
+      properties:
+        otp_code:
+          type: string
+    CreateServiceAccountRequest:
+      type: object
+      required:
+        - name
+        - role
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, operator, readonly]
+    ServiceAccount:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, operator, readonly]
+        status:
+          type: string
+          enum: [active, revoked]
+        created_at:
+          type: string
+        updated_at:
+          type: string
+        last_used_at:
+          type: string
+    ServiceAccountListResponse:
+      type: object
+      properties:
+        service_accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceAccount'
+    CreateServiceAccountKeyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        ttl_minutes:
+          type: integer
+          minimum: 0
+    ServiceAccountKey:
+      type: object
+      properties:
+        id:
+          type: string
+        service_account_id:
+          type: string
+        name:
+          type: string
+        key_prefix:
+          type: string
+        status:
+          type: string
+          enum: [active, revoked]
+        expires_at:
+          type: string
+        created_at:
+          type: string
+        revoked_at:
+          type: string
+        last_used_at:
+          type: string
+        token:
+          type: string
+          description: Raw token shown only on create.
+    ServiceAccountKeyListResponse:
+      type: object
+      properties:
+        keys:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServiceAccountKey'
+    BulkResultItem:
+      type: object
+      properties:
+        id:
+          type: string
+        success:
+          type: boolean
+        error:
+          type: string
+    BulkResultResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/BulkResultItem'
+    BulkAgentStateRequest:
+      type: object
+      required:
+        - action
+        - agent_ids
+      properties:
+        action:
+          type: string
+          enum: [disable, enable, revoke]
+        agent_ids:
+          type: array
+          items:
+            type: string
+    BulkAssignPoliciesRequest:
+      type: object
+      required:
+        - policy_id
+        - agent_ids
+      properties:
+        policy_id:
+          type: string
+        agent_ids:
+          type: array
+          items:
+            type: string
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, operator, readonly]
+        theme_preference:
+          type: string
+          enum: [light, dark]
+        created_at:
+          type: string
+    UserPage:
+      type: object
+      properties:
+        users:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        next_cursor:
+          type: string
+    CreateUserRequest:
+      type: object
+      required:
+        - email
+        - password
+        - role
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, operator, readonly]
+    UpdateUserRequest:
+      type: object
+      required:
+        - email
+        - role
+      properties:
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, operator, readonly]
+    ResetUserPasswordRequest:
+      type: object
+      required:
+        - new_password
+      properties:
+        new_password:
+          type: string
+    ChangeOwnPasswordRequest:
+      type: object
+      required:
+        - current_password
+        - new_password
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+    PasswordActionResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+        otp_code:
+          type: string
+    CreateEnrollmentTokenRequest:
+      type: object
+      required:
+        - model
+        - scope
+      properties:
+        model:
+          type: string
+          enum: [A, B]
+        scope:
+          type: string
+        bound_identity:
+          type: string
+        access_policy_ids:
+          type: array
+          items:
+            type: string
+        ttl_minutes:
+          type: integer
+    EnrollmentToken:
+      type: object
+      properties:
+        id:
+          type: string
+        model:
+          type: string
+        scope:
+          type: string
+        status:
+          type: string
+        bound_identity:
+          type: string
+        access_policy_ids:
+          type: array
+          items:
+            type: string
+        expires_at:
+          type: string
+        used_at:
+          type: string
+        revoked_at:
+          type: string
+        created_by_user_id:
+          type: string
+        created_at:
+          type: string
+        token:
+          type: string
+        risk_warning:
+          type: string
+    EnrollmentTokenPage:
+      type: object
+      properties:
+        tokens:
+          type: array
+          items:
+            $ref: '#/components/schemas/EnrollmentToken'
+        next_cursor:
+          type: string
+    PerformEnrollmentRequest:
+      type: object
+      required:
+        - token
+        - hostname
+        - platform
+        - public_key
+      properties:
+        token:
+          type: string
+        hostname:
+          type: string
+        platform:
+          type: string
+          enum: [windows, linux]
+        public_key:
+          type: string
+    AgentCheckInRequest:
+      type: object
+      properties:
+        version:
+          type: string
+        rotation_public_key:
+          type: string
+        local_state:
+          $ref: '#/components/schemas/AgentLocalState'
+    AgentCheckInResponse:
+      type: object
+      properties:
+        agent:
+          $ref: '#/components/schemas/AgentInventory'
+        reconfigure_required:
+          type: boolean
+        desired_state:
+          type: string
+          enum: [active, disabled]
+        rotation_required:
+          type: boolean
+        wireguard_config:
+          $ref: '#/components/schemas/WireGuardConfig'
+        version:
+          type: string
+        checked_in_at:
+          type: string
+    AgentLocalState:
+      type: object
+      properties:
+        reported_config_fingerprint:
+          type: string
+        last_apply_status:
+          type: string
+          enum: [applied, staged, apply_failed, drifted, disabled]
+        last_apply_error:
+          type: string
+        last_applied_at:
+          type: string
+    PatchAgentStateRequest:
+      type: object
+      required:
+        - action
+      properties:
+        action:
+          type: string
+          enum: [disable, enable, revoke]
+    PatchAgentTrafficModeRequest:
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          type: string
+          enum: [inherit, standard, full_tunnel]
+    AgentInventory:
+      type: object
+      properties:
+        id:
+          type: string
+        hostname:
+          type: string
+        platform:
+          type: string
+        status:
+          type: string
+        traffic_mode:
+          type: string
+          enum: [standard, full_tunnel]
+        traffic_mode_override:
+          type: string
+          enum: [standard, full_tunnel]
+        gateway_mode:
+          type: string
+          enum: [disabled, subnet_access, egress_gateway]
+        last_seen_at:
+          type: string
+        reported_version:
+          type: string
+        reported_config_fingerprint:
+          type: string
+        last_apply_status:
+          type: string
+        last_apply_error:
+          type: string
+        last_applied_at:
+          type: string
+        created_at:
+          type: string
+        peer:
+          $ref: '#/components/schemas/PeerInventory'
+    AgentInventoryPage:
+      type: object
+      properties:
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentInventory'
+        next_cursor:
+          type: string
+    PeerInventory:
+      type: object
+      properties:
+        id:
+          type: string
+        public_key:
+          type: string
+        assigned_address:
+          type: string
+        allowed_ips:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        created_at:
+          type: string
+    WireGuardConfig:
+      type: object
+      properties:
+        interface_address:
+          type: string
+        server_endpoint:
+          type: string
+        server_public_key:
+          type: string
+        allowed_ips:
+          type: array
+          items:
+            type: string
+        dns_servers:
+          type: array
+          items:
+            type: string
+        dns_search_domains:
+          type: array
+          items:
+            type: string
+    DNSConfig:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        servers:
+          type: array
+          items:
+            type: string
+        search_domains:
+          type: array
+          items:
+            type: string
+        updated_at:
+          type: string
+    PostAgentGatewayModeRequest:
+      type: object
+      required:
+        - mode
+      properties:
+        mode:
+          type: string
+          enum: [disabled, subnet_access, egress_gateway]
+    PolicySimulationRequest:
+      type: object
+      properties:
+        agent_id:
+          type: string
+        policy_ids:
+          type: array
+          items:
+            type: string
+        traffic_mode_override:
+          type: string
+          enum: [inherit, standard, full_tunnel]
+    PolicySimulationResult:
+      type: object
+      properties:
+        agent_id:
+          type: string
+        policy_ids:
+          type: array
+          items:
+            type: string
+        effective_traffic_mode:
+          type: string
+          enum: [standard, full_tunnel]
+        allowed_ips:
+          type: array
+          items:
+            type: string
+        destinations:
+          type: array
+          items:
+            type: string
+        route_profile:
+          type: string
+          enum: [standard, full_tunnel]
+    DiagnosticsSummary:
+      type: object
+      properties:
+        total_agents:
+          type: integer
+        direct_agents:
+          type: integer
+        relay_agents:
+          type: integer
+        gateway_agents:
+          type: integer
+        conflict_count:
+          type: integer
+    AgentDiagnostic:
+      type: object
+      properties:
+        agent_id:
+          type: string
+        hostname:
+          type: string
+        platform:
+          type: string
+        agent_status:
+          type: string
+        peer_id:
+          type: string
+        peer_status:
+          type: string
+        traffic_mode:
+          type: string
+          enum: [standard, full_tunnel]
+        gateway_mode:
+          type: string
+          enum: [disabled, subnet_access, egress_gateway]
+        route_profile:
+          type: string
+          enum: [standard, full_tunnel, subnet_access, egress_gateway]
+        path_mode:
+          type: string
+          enum: [direct, relay]
+        gateway_assignment_status:
+          type: string
+        drift_state:
+          type: string
+        allowed_destinations:
+          type: array
+          items:
+            type: string
+        route_conflicts:
+          type: array
+          items:
+            type: string
+        last_seen_at:
+          type: string
+    DiagnosticsSnapshot:
+      type: object
+      properties:
+        generated_at:
+          type: string
+        relay_available:
+          type: boolean
+        relay_status:
+          type: string
+        summary:
+          $ref: '#/components/schemas/DiagnosticsSummary'
+        agents:
+          type: array
+          items:
+            $ref: '#/components/schemas/AgentDiagnostic'
+    CapacityInventory:
+      type: object
+      properties:
+        users:
+          type: integer
+        agents:
+          type: integer
+        peers:
+          type: integer
+        access_policies:
+          type: integer
+        policy_assignments:
+          type: integer
+        enrollment_tokens:
+          type: integer
+        pending_security_approvals:
+          type: integer
+        recently_seen_agents:
+          type: integer
+        failed_agents:
+          type: integer
+        drifted_peers:
+          type: integer
+    CapacitySessions:
+      type: object
+      properties:
+        active_sessions:
+          type: integer
+        idle_timeout_minutes:
+          type: integer
+    CapacityAudit:
+      type: object
+      properties:
+        total_events:
+          type: integer
+        oldest_event_at:
+          type: string
+        newest_event_at:
+          type: string
+    CapacityLogging:
+      type: object
+      properties:
+        queue_capacity:
+          type: integer
+        current_queued:
+          type: integer
+        sinks_total:
+          type: integer
+        enabled_sinks:
+          type: integer
+        degraded_sinks:
+          type: integer
+        dropped_events:
+          type: integer
+        total_delivered:
+          type: integer
+        total_failed:
+          type: integer
+        consecutive_failures:
+          type: integer
+    CapacitySnapshot:
+      type: object
+      properties:
+        generated_at:
+          type: string
+        database_engine:
+          type: string
+          enum: [sqlite, postgres]
+        inventory:
+          $ref: '#/components/schemas/CapacityInventory'
+        sessions:
+          $ref: '#/components/schemas/CapacitySessions'
+        audit:
+          $ref: '#/components/schemas/CapacityAudit'
+        logging:
+          $ref: '#/components/schemas/CapacityLogging'
+        storage:
+          $ref: '#/components/schemas/CapacityStorage'
+    ClusterNodeStatus:
+      type: object
+      properties:
+        instance_id:
+          type: string
+        is_leader:
+          type: boolean
+        leader_id:
+          type: string
+        last_heartbeat_at:
+          type: string
+        lease_expires_at:
+          type: string
+        updated_at:
+          type: string
+    ClusterStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+        instance_id:
+          type: string
+        lease_name:
+          type: string
+        heartbeat_seconds:
+          type: integer
+        lease_seconds:
+          type: integer
+        is_leader:
+          type: boolean
+        leader_id:
+          type: string
+        lease_expires_at:
+          type: string
+        nodes:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterNodeStatus'
+        last_updated_at:
+          type: string
+    PeerRuntimeView:
+      type: object
+      properties:
+        id:
+          type: string
+        agent_id:
+          type: string
+        hostname:
+          type: string
+        public_key:
+          type: string
+        assigned_address:
+          type: string
+        allowed_ips:
+          type: array
+          items:
+            type: string
+        runtime_allowed_ips:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+        drift:
+          type: string
+    PeerRuntimeViewPage:
+      type: object
+      properties:
+        peers:
+          type: array
+          items:
+            $ref: '#/components/schemas/PeerRuntimeView'
+        next_cursor:
+          type: string
+    PerformEnrollmentResponse:
+      type: object
+      properties:
+        agent:
+          $ref: '#/components/schemas/AgentInventory'
+        agent_auth_token:
+          type: string
+        wireguard_config:
+          $ref: '#/components/schemas/WireGuardConfig'
+        token:
+          type: object
+          properties:
+            id:
+              type: string
+            model:
+              type: string
+            status:
+              type: string
+            bound_identity:
+              type: string
+    CreateAccessPolicyRequest:
+      type: object
+      required:
+        - name
+        - destinations
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        traffic_mode:
+          type: string
+          enum: [standard, full_tunnel]
+        destinations:
+          type: array
+          items:
+            type: string
+    AccessPolicy:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        destinations:
+          type: array
+          items:
+            type: string
+        traffic_mode:
+          type: string
+          enum: [standard, full_tunnel]
+        assigned_agent_ids:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    AccessPolicyPage:
+      type: object
+      properties:
+        policies:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccessPolicy'
+        next_cursor:
+          type: string
+    AssignAccessPolicyRequest:
+      type: object
+      required:
+        - agent_id
+      properties:
+        agent_id:
+          type: string
+    AuditHashMeta:
+      type: object
+      properties:
+        prev_hash:
+          type: string
+        event_hash:
+          type: string
+    AuditEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        actor_user_id:
+          type: string
+        action:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: string
+        result:
+          type: string
+        created_at:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        hash_meta:
+          $ref: '#/components/schemas/AuditHashMeta'
+    AuditEventListResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        next_cursor:
+          type: string
+    AuditExportRequest:
+      type: object
+      properties:
+        destination:
+          type: string
+          enum: [file, s3]
+        path:
+          type: string
+          description: Relative file path for `file` destination, or default object key for `s3`.
+        bucket:
+          type: string
+        key:
+          type: string
+        region:
+          type: string
+        action:
+          type: string
+        resource_type:
+          type: string
+        result:
+          type: string
+        actor_user_id:
+          type: string
+    AuditExportResponse:
+      type: object
+      properties:
+        format:
+          type: string
+        destination:
+          type: string
+          enum: [file, s3]
+        path:
+          type: string
+        bucket:
+          type: string
+        key:
+          type: string
+        region:
+          type: string
+        events:
+          type: integer
+        bytes:
+          type: integer
+    NotificationPreferences:
+      type: object
+      properties:
+        email:
+          type: boolean
+    PatchNotificationPreferencesRequest:
+      type: object
+      properties:
+        email:
+          type: boolean
+    IPAMPool:
+      type: object
+      properties:
+        id:
+          type: string
+        cidr:
+          type: string
+        description:
+          type: string
+        is_ipv6:
+          type: boolean
+        gateway:
+          type: string
+        created_at:
+          type: string
+        updated_at:
+          type: string
+    IPAMPoolSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        cidr:
+          type: string
+        description:
+          type: string
+        is_ipv6:
+          type: boolean
+        gateway:
+          type: string
+        total_addresses:
+          type: integer
+        used_addresses:
+          type: integer
+        free_addresses:
+          type: integer
+        created_at:
+          type: string
+    IPAMPoolListResponse:
+      type: object
+      properties:
+        pools:
+          type: array
+          items:
+            $ref: '#/components/schemas/IPAMPoolSummary'
+    CreateIPAMPoolRequest:
+      type: object
+      required:
+        - cidr
+      properties:
+        cidr:
+          type: string
+          description: CIDR notation (e.g. 10.0.0.0/24 or fd00::/64)
+        description:
+          type: string
+        gateway:
+          type: string
+    IPAMReservation:
+      type: object
+      properties:
+        id:
+          type: string
+        pool_id:
+          type: string
+        address:
+          type: string
+        peer_id:
+          type: string
+        label:
+          type: string
+        reserved_at:
+          type: string
+    IPAMReservationListResponse:
+      type: object
+      properties:
+        reservations:
+          type: array
+          items:
+            $ref: '#/components/schemas/IPAMReservation'
+    AllocateIPAMAddressRequest:
+      type: object
+      properties:
+        peer_id:
+          type: string
+        label:
+          type: string

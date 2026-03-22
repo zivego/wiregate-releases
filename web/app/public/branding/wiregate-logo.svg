@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="Wiregate logo">
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="45%" r="62%">
+      <stop offset="0%" stop-color="#73f7ff" stop-opacity="0.95"/>
+      <stop offset="55%" stop-color="#46b8ff" stop-opacity="0.92"/>
+      <stop offset="100%" stop-color="#2c5a8a" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="shieldStroke" x1="12%" y1="12%" x2="88%" y2="88%">
+      <stop offset="0%" stop-color="#2fd5ff"/>
+      <stop offset="100%" stop-color="#95ff76"/>
+    </linearGradient>
+    <radialGradient id="keyFill" cx="40%" cy="32%" r="72%">
+      <stop offset="0%" stop-color="#fff48f"/>
+      <stop offset="65%" stop-color="#ffd537"/>
+      <stop offset="100%" stop-color="#f7a807"/>
+    </radialGradient>
+    <filter id="softGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bgGlow)"/>
+
+  <g transform="translate(132 90)">
+    <path
+      d="M380 20L760 170V430C760 630 640 790 380 910C120 790 0 630 0 430V170L380 20Z"
+      fill="none"
+      stroke="url(#shieldStroke)"
+      stroke-width="28"
+      stroke-linejoin="round"
+      opacity="0.96"
+    />
+    <circle cx="380" cy="420" r="238" fill="none" stroke="#89f0ff" stroke-width="18" opacity="0.78"/>
+    <path d="M380 230A190 190 0 0 1 548 324" fill="none" stroke="#a5ff92" stroke-width="16" stroke-linecap="round" opacity="0.8"/>
+    <path d="M238 360A190 190 0 0 1 380 230" fill="none" stroke="#63e4ff" stroke-width="16" stroke-linecap="round" opacity="0.8"/>
+    <path d="M244 590A190 190 0 0 1 202 516" fill="none" stroke="#43d3ff" stroke-width="16" stroke-linecap="round" opacity="0.8"/>
+    <path d="M530 542A190 190 0 0 1 466 608" fill="none" stroke="#95ff76" stroke-width="16" stroke-linecap="round" opacity="0.82"/>
+
+    <g transform="translate(266 326) rotate(-37 180 130)" filter="url(#softGlow)">
+      <circle cx="268" cy="118" r="70" fill="url(#keyFill)" stroke="#ffec9e" stroke-width="7"/>
+      <circle cx="268" cy="118" r="26" fill="#f3dd42" opacity="0.78"/>
+      <path d="M34 100H216V154H176V182H140V210H104V182H34Z" fill="url(#keyFill)" stroke="#ffc82c" stroke-width="6"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,28 @@
+export type ThemePreference = "light" | "dark";
+
+export const uiTheme = {
+  pageBg: "var(--wg-page-bg)",
+  surface: "var(--wg-surface)",
+  surfaceAlt: "var(--wg-surface-alt)",
+  surfaceInverse: "var(--wg-surface-inverse)",
+  surfaceInverseAlt: "var(--wg-surface-inverse-alt)",
+  headerBg: "var(--wg-header-bg)",
+  headerLink: "var(--wg-header-link)",
+  headerLinkActive: "var(--wg-header-link-active)",
+  headerText: "var(--wg-header-text)",
+  headerChipBg: "var(--wg-header-chip-bg)",
+  headerChipText: "var(--wg-header-chip-text)",
+  text: "var(--wg-text)",
+  textSoft: "var(--wg-text-soft)",
+  textMuted: "var(--wg-text-muted)",
+  textInverseMuted: "var(--wg-text-inverse-muted)",
+  border: "var(--wg-border)",
+  borderSubtle: "var(--wg-border-subtle)",
+  borderTable: "var(--wg-border-table)",
+  borderTableStrong: "var(--wg-border-table-strong)",
+  inputBg: "var(--wg-input-bg)",
+  inputText: "var(--wg-input-text)",
+  inputBgInverse: "var(--wg-input-bg-inverse)",
+  inputTextInverse: "var(--wg-input-text-inverse)",
+  shadow: "var(--wg-shadow)",
+} as const;

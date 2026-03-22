@@ -1,0 +1,2 @@
+ALTER TABLE agents
+ADD COLUMN auth_token_hash TEXT NOT NULL DEFAULT '';

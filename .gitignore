@@ -1,0 +1,25 @@
+# Data
+/data/
+*.db
+
+# Frontend
+/web/app/node_modules/
+/web/app/dist/
+
+# Build artifacts
+/wiregate-server
+/wiregate-agent-*
+
+# Runtime
+/.wiregate-run/
+/.wiregate-backups/
+
+# Deploy secrets
+/deploy/compose/.env
+/deploy/compose/.secrets/
+/deploy/compose/release.stack.env
+/deploy/compose/backup.pass
+
+# IDE / tools
+.claude/
+.codex/
