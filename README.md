@@ -13,7 +13,7 @@ Installs the current published release from GHCR:
 ```bash
 git clone https://github.com/zivego/wiregate-releases.git
 cd wiregate-releases
-cp deploy/compose/.env.example .env
+cp .env.example .env
 ```
 
 Edit `.env` and set at least:
@@ -26,7 +26,7 @@ WIREGATE_BOOTSTRAP_ADMIN_PASSWORD=change-me-to-a-strong-password
 Then start WireGate:
 
 ```bash
-docker compose -f deploy/compose/docker-compose.yml up -d
+docker compose up -d
 ```
 
 Open:
@@ -82,7 +82,7 @@ WIREGATE_COOKIE_INSECURE=false
 Then recreate the stack:
 
 ```bash
-docker compose -f deploy/compose/docker-compose.yml up -d
+docker compose up -d
 ```
 
 For production, a reverse proxy such as Caddy, Traefik, or nginx is still the
@@ -101,16 +101,34 @@ So the **Update** page checks published releases from this repository.
 Stop containers:
 
 ```bash
-docker compose -f deploy/compose/docker-compose.yml down
+docker compose down
 ```
 
 Remove containers **and data volumes**:
 
 ```bash
-docker compose -f deploy/compose/docker-compose.yml down -v
+docker compose down -v
 ```
 
 ## Changelog
 
 - latest release manifest: [manifest.json](./manifest.json)
 - GitHub releases: https://github.com/zivego/wiregate-releases/releases
+
+## Troubleshooting
+
+If Docker prints:
+
+```text
+Error parsing config file (/root/.docker/config.json): is a directory
+```
+
+your host Docker CLI config is broken. Fix it on the host:
+
+```bash
+mkdir -p /root/.docker
+rm -rf /root/.docker/config.json
+printf '{}\n' > /root/.docker/config.json
+chmod 600 /root/.docker/config.json
+unset DOCKER_CONFIG
+```
