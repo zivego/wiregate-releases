@@ -52,7 +52,7 @@ Open:
 
 Default published version in this repo:
 
-- `WIREGATE_VERSION=1.0.4`
+- `WIREGATE_VERSION=1.0.5`
 
 To install a different published version, change `WIREGATE_VERSION` in `.env`.
 
@@ -112,20 +112,13 @@ This installer points the updater at:
 
 So the **Update** page checks published releases from this repository.
 
-Starting with `1.0.4`, compose-managed updates persist `WIREGATE_VERSION` for
-future `docker compose up -d` runs.
+Starting with `1.0.5`, compose-managed updates persist `WIREGATE_VERSION` and
+use a stable project-local compose override for future `docker compose up -d`
+runs.
 
-If you are upgrading **from `1.0.3` to `1.0.4`**, the update is still executed
-by the older `1.0.3` updater runtime. That one-time hop may leave `.env` pinned
-to `1.0.3`. After the upgrade finishes, set:
-
-```env
-WIREGATE_VERSION=1.0.4
-```
-
-once in `.env` if you plan to re-run `docker compose up -d` before the next
-in-app update. Subsequent updates initiated from `1.0.4+` will persist the new
-version automatically.
+`1.0.5` also fixes reverse-proxy cookie-auth handling for mutating UI actions
+such as **Update Now** and **Force logout** behind Caddy/Cloudflare-style
+setups.
 
 ## Stop / Remove
 
