@@ -23,6 +23,14 @@ WIREGATE_BOOTSTRAP_ADMIN_EMAIL=admin@yourcompany.com
 WIREGATE_BOOTSTRAP_ADMIN_PASSWORD=change-me-to-a-strong-password
 ```
 
+If you want the frontend reachable only from a local reverse proxy on the same
+host, bind it to localhost instead of all interfaces:
+
+```env
+WIREGATE_FRONTEND_PORT=127.0.0.1:5656
+WIREGATE_FRONTEND_TLS_PORT=127.0.0.1:56443
+```
+
 Then start WireGate:
 
 ```bash
