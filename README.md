@@ -52,7 +52,7 @@ Open:
 
 Default published version in this repo:
 
-- `WIREGATE_VERSION=1.0.5`
+- `WIREGATE_VERSION=1.0.6`
 
 To install a different published version, change `WIREGATE_VERSION` in `.env`.
 
@@ -119,6 +119,13 @@ runs.
 `1.0.5` also fixes reverse-proxy cookie-auth handling for mutating UI actions
 such as **Update Now** and **Force logout** behind Caddy/Cloudflare-style
 setups.
+
+`1.0.6` adds the Wave 2 Linux appliance acceptance path for full-tunnel:
+
+- automatic reconcile convergence without manual peer sync
+- restart recovery back to `in_sync`
+- managed gateway readiness diagnostics
+- canonical published-image full-tunnel acceptance harness
 
 ## Stop / Remove
 
