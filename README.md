@@ -29,6 +29,14 @@ Then start WireGate:
 docker compose up -d
 ```
 
+If you already cloned this repository earlier, update it first:
+
+```bash
+git pull
+cp .env.example .env   # only if .env does not exist yet
+docker compose up -d
+```
+
 Open:
 
 - `http://your-host` for default HTTP installs
