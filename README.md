@@ -104,62 +104,58 @@ docker compose up -d
 For production, a reverse proxy such as Caddy, Traefik, or nginx is still the
 recommended path.
 
-## Update Flow
+## Install Linux Agent (Client)
 
-This installer points the updater at:
+Use this when you want to connect a Linux host to your WireGate server.
 
-- `https://raw.githubusercontent.com/zivego/wiregate-releases/main/manifest.json`
+Prerequisites:
 
-So the **Update** page checks published releases from this repository.
+- a running WireGate server URL such as `https://wiregate.example.com`
+- an enrollment token created in the WireGate admin UI
+- Linux host with `wireguard-tools`
+- root access for config apply and service install
+- Go toolchain if you want to build the client from source
 
-Starting with `1.0.5`, compose-managed updates persist `WIREGATE_VERSION` and
-use a stable project-local compose override for future `docker compose up -d`
-runs.
-
-`1.0.5` also fixes reverse-proxy cookie-auth handling for mutating UI actions
-such as **Update Now** and **Force logout** behind Caddy/Cloudflare-style
-setups.
-
-`1.0.6` adds the Wave 2 Linux appliance acceptance path for full-tunnel:
-
-- automatic reconcile convergence without manual peer sync
-- restart recovery back to `in_sync`
-- managed gateway readiness diagnostics
-- canonical published-image full-tunnel acceptance harness
-
-## Stop / Remove
-
-Stop containers:
+Install dependencies:
 
 ```bash
-docker compose down
+sudo apt-get update
+sudo apt-get install -y wireguard-tools
 ```
 
-Remove containers **and data volumes**:
+Build the Linux client from source:
 
 ```bash
-docker compose down -v
+git clone https://github.com/zivego/wiregate.git
+cd wiregate
+go build -o wiregate-agent-linux ./cmd/wiregate-agent-linux
+sudo install -m 0755 ./wiregate-agent-linux /usr/local/bin/wiregate-agent-linux
+```
+
+Enroll the client:
+
+```bash
+sudo /usr/local/bin/wiregate-agent-linux enroll \
+  --server https://wiregate.example.com \
+  --token <enrollment-token>
+```
+
+Install and start the systemd service:
+
+```bash
+sudo /usr/local/bin/wiregate-agent-linux install-service
+sudo systemctl status wiregate-agent-linux
+```
+
+Useful follow-up commands:
+
+```bash
+sudo journalctl -u wiregate-agent-linux -f
+sudo /usr/local/bin/wiregate-agent-linux check-in
+sudo /usr/local/bin/wiregate-agent-linux uninstall-service
 ```
 
 ## Changelog
 
 - latest release manifest: [manifest.json](./manifest.json)
 - GitHub releases: https://github.com/zivego/wiregate-releases/releases
-
-## Troubleshooting
-
-If Docker prints:
-
-```text
-Error parsing config file (/root/.docker/config.json): is a directory
-```
-
-your host Docker CLI config is broken. Fix it on the host:
-
-```bash
-mkdir -p /root/.docker
-rm -rf /root/.docker/config.json
-printf '{}\n' > /root/.docker/config.json
-chmod 600 /root/.docker/config.json
-unset DOCKER_CONFIG
-```
