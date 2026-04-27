@@ -9,7 +9,7 @@ COPY web/app/public ./public
 COPY web/app/src ./src
 RUN npm ci --no-audit --no-fund && npm run build
 
-FROM nginx:1.29.7-alpine
+FROM nginx:1.30.0-alpine
 COPY --from=build /src/dist /usr/share/nginx/html
 COPY deploy/compose/frontend.nginx.conf /etc/nginx/conf.d/tls.conf
 COPY deploy/compose/frontend.nginx.http.conf /etc/nginx/conf.d/http.conf
